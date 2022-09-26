@@ -77,10 +77,17 @@ httpGet512BytesMax url request manager = do
         responseBSFirstChunk <- Http.brReadSome (Http.responseBody responseBR) 512
         -- If there are more bytes in the second chunk, we don't go any further since that
         -- violates the size constraint.
-        responseBSSecondChunk <- Http.brReadSome (Http.responseBody responseBR) 1
+        responseBSSecondChunk <- Http.brReadSome (Http.responseBody responseBR) 100
         if LBS.null responseBSSecondChunk
           then pure $ Right (LBS.toStrict responseBSFirstChunk, Http.responseStatus responseBR)
-          else pure $ Left (FEDataTooLong url)
+          else do
+            putTextLn "=================================================================================="
+            putTextLn $ unPoolUrl url
+            print (Http.responseStatus responseBR, LBS.length responseBSFirstChunk, responseBSFirstChunk)
+            putTextLn "----------------------------------------------------------------------------------"
+            print (Http.responseStatus responseBR, LBS.length responseBSSecondChunk, responseBSSecondChunk)
+            putTextLn "----------------------------------------------------------------------------------"
+            pure $ Left (FEDataTooLong url)
 
 convertHttpException :: PoolUrl -> HttpException -> FetchError
 convertHttpException url he =
